@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import calendar
+import altair as alt
 
 # ======================================
 # CONFIGURAÇÃO INICIAL
@@ -169,10 +170,10 @@ PIN_RULES = {
 
 
 def get_pin_rule(pin_input: str):
-    """Retorna a regra de acesso para o PIN informado (case-insensitive)."""
+    """Retorna a regra de acesso para o PIN informado."""
     if not pin_input:
         return None
-    pin_clean = pin_input.strip().lower()
+    pin_clean = pin_input.strip()  # agora não precisa mais de lower()
     return PIN_RULES.get(pin_clean)
 
 
@@ -183,13 +184,7 @@ def get_pin_rule(pin_input: str):
 def load_data(path: str):
     df = pd.read_excel(path)
 
-    # Ajuste AQUI os nomes das colunas se forem diferentes na planilha
-    # Supondo:
-    # AG = "Data Encerramento"
-    # AM = "Responsável Encerramento"
-    # AS = "Célula"
-    # AK = "Tipo Encerramento"
-
+    # Coluna de data
     df["Data Encerramento"] = pd.to_datetime(
         df["Data Encerramento"], dayfirst=True, errors="coerce"
     )
@@ -200,6 +195,7 @@ def load_data(path: str):
     return df
 
 
+# Caminho da planilha no OneDrive
 EXCEL_PATH = r"C:\Users\ingridaleixo\OneDrive - Queiroz Cavalcanti Advocacia\NÚCLEO CONTROLLER\Planilhas - Auditorias\ENCERRAMENTOS.xlsx"
 df_raw = load_data(EXCEL_PATH)
 
@@ -208,6 +204,56 @@ COL_DATA = "Data Encerramento"
 COL_CELULA = "Célula"
 COL_RESP = "Responsável Encerramento"
 COL_TIPO = "Tipo Encerramento"
+
+# ======================================
+# Regras de classificação FAVO / DESF
+# ======================================
+FAVO_TYPES = {
+    "ACORDO",
+    "ACORDO PRÉVIO",
+    "ACORDO PREVIO",
+    "DESISTÊNCIA",
+    "DESISTENCIA",
+    "DESISTÊNCIA DA RECLAMAÇÃO",
+    "EXTINTO SEM JULGAMENTO DO MÉRITO",
+    "EXTINTO SEM JULGAMENTO",
+    "IMPROCEDENTE",
+    "NÃO FUNDAMENTADA",
+    "NAO FUNDAMENTADA SEM PECÚNIA",
+    "COM MULTA",
+}
+
+DESF_TYPES = {
+    "PROCEDENTE",
+    "PROCEDENTE EM PARTE",
+}
+
+IGNORE_TYPES = {
+    "DESCONSIDERAÇÃO DE PATROCÍNIO",
+    "DESCONTRATAÇÃO",
+    "CADASTRO DUPLICADO OU EQUIVOCADO",
+}
+
+# Normaliza tipo de encerramento e aplica classificação na base bruta
+df_raw[COL_TIPO] = df_raw[COL_TIPO].astype(str).str.upper().str.strip()
+df_raw[COL_CELULA] = df_raw[COL_CELULA].astype(str).str.strip()
+
+
+def classificar_tipo(tipo: str) -> str:
+    if tipo in IGNORE_TYPES:
+        return "IGNORAR"
+    if tipo in FAVO_TYPES:
+        return "FAVORÁVEL"
+    if tipo in DESF_TYPES:
+        return "DESFAVORÁVEL"
+    return None
+
+
+df_raw["Classificação"] = df_raw[COL_TIPO].apply(classificar_tipo)
+
+# Remove totalmente os tipos a serem ignorados
+df_raw = df_raw[df_raw["Classificação"] != "IGNORAR"]
+df_raw = df_raw[df_raw["Classificação"].notna()]
 
 
 # ======================================
@@ -241,10 +287,8 @@ if not st.session_state.logged_in:
             st.success("PIN aceito! Carregando dashboard...")
             st.rerun()
 
-
     # Não deixa seguir adiante sem login
     st.stop()
-
 
 # ======================================
 # USUÁRIO AUTENTICADO – APLICA REGRA DO PIN
@@ -252,9 +296,14 @@ if not st.session_state.logged_in:
 rule = st.session_state.pin_rule
 df = df_raw.copy()
 
-if rule and not rule.get("all", False):
-    allowed_cells = rule["cells"]
-    df = df[df[COL_CELULA].isin(allowed_cells)]
+allowed_cells = None
+
+if rule is not None:
+    if rule.get("all", False):
+        allowed_cells = sorted(df[COL_CELULA].unique())
+    else:
+        allowed_cells = [c.strip() for c in rule["cells"]]
+        df = df[df[COL_CELULA].isin(allowed_cells)]
 
 # ======================================
 # BARRA LATERAL – INFO DO PIN E LOGOUT
@@ -262,17 +311,20 @@ if rule and not rule.get("all", False):
 st.sidebar.markdown("### Usuário autenticado")
 st.sidebar.write(f"**Perfil:** {st.session_state.pin_label}")
 
+st.sidebar.markdown("### Células liberadas pelo PIN")
+if allowed_cells:
+    st.sidebar.write(", ".join(allowed_cells))
+else:
+    st.sidebar.write("Nenhuma célula liberada (verificar PIN).")
+
 if st.sidebar.button("Trocar PIN / Logout"):
     for k in ["logged_in", "pin_label", "pin_rule"]:
         if k in st.session_state:
-            del st.session_state[k]   
+            del st.session_state[k]
     st.rerun()
 
-
-
 # ======================================
-# A PARTIR DAQUI É O MESMO DASHBOARD DE ANTES,
-# SÓ QUE JÁ COM O DF RESTRITO ÀS CÉLULAS DO PIN
+# DASHBOARD
 # ======================================
 
 st.title("📊 Dashboard de Encerramentos")
@@ -284,8 +336,8 @@ Este painel mostra a **quantidade de encerramentos** com base na planilha de enc
 - A coluna **Célula** é usada para agrupar os dados;
 - A coluna **Responsável Encerramento** identifica quem encerrou;
 - A coluna **Data Encerramento** permite filtrar por período, mês e ano;
-- A coluna **Tipo Encerramento** mostra o tipo de encerramento.
-
+- A coluna **Tipo Encerramento** mostra o tipo de encerramento;
+- A coluna **Classificação** indica se o encerramento foi **FAVORÁVEL** ou **DESFAVORÁVEL**.
 """
 )
 
@@ -322,7 +374,6 @@ responsaveis_sel = st.sidebar.multiselect("Responsável pelo Encerramento", resp
 # Tipos de encerramento
 tipos_disponiveis = sorted(df[COL_TIPO].dropna().unique())
 tipos_sel = st.sidebar.multiselect("Tipo de Encerramento", tipos_disponiveis)
-
 
 # =========================
 # Aplicação dos filtros
@@ -408,6 +459,69 @@ if modo == "Visão Geral":
         st.dataframe(tipo_counts, use_container_width=True, hide_index=True)
     else:
         st.info("Nenhum tipo de encerramento encontrado com os filtros atuais.")
+
+        # =========================
+    # Gráfico FAVO x DESF (barras horizontais)
+    # =========================
+    st.markdown("### Encerramentos Favoráveis x Desfavoráveis")
+
+    if total_encerramentos > 0:
+        resultado_classificacao = (
+            df_filtrado["Classificação"]
+            .value_counts()
+            .rename_axis("Classificação")
+            .reset_index(name="Quantidade")
+        )
+
+        # Mantém apenas FAVORÁVEL e DESFAVORÁVEL
+        resultado_plot = resultado_classificacao[
+            resultado_classificacao["Classificação"].isin(["FAVORÁVEL", "DESFAVORÁVEL"])
+        ]
+
+        if not resultado_plot.empty:
+            color_scale = alt.Scale(
+                domain=["FAVORÁVEL", "DESFAVORÁVEL"],
+                range=["#1CB66F", "#C7373A"],  # verde e vermelho
+            )
+
+            chart = (
+                alt.Chart(resultado_plot)
+                .mark_bar(size=60)
+                .encode(
+                    # Barras na horizontal: Quantidade no eixo X
+                    x=alt.X(
+                        "Quantidade:Q",
+                        title=None,
+                        axis=alt.Axis(labelColor="white", title=None),
+                    ),
+                    # Classificação no eixo Y
+                    y=alt.Y(
+                        "Classificação:N",
+                        title=None,
+                        axis=alt.Axis(labelColor="white", title=None),
+                    ),
+                    color=alt.Color(
+                        "Classificação:N",
+                        scale=color_scale,
+                        legend=alt.Legend(
+                            orient="bottom",          # embaixo
+                            direction="horizontal",   # legenda na horizontal
+                            title=None,
+                            labelColor="white",
+                        ),
+                    ),
+                )
+                .properties(
+                    width="container",
+                    height=300,
+                )
+            )
+
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            st.info("Nenhum encerramento FAVORÁVEL ou DESFAVORÁVEL encontrado com os filtros.")
+    else:
+        st.info("Nenhum encerramento para classificar com os filtros atuais.")
 
 # =========================
 # MODO COMPARAR CÉLULAS
