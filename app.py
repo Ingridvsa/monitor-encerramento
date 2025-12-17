@@ -20,152 +20,212 @@ PRIMARY_COLOR = "#1E2245"
 SECONDARY_COLOR = "#800E35"
 TEXT_COLOR = "#FFFFFF"
 
+# ============================
+# TEMA ALTAIR (FUNDO + LETRAS)
+# ============================
+def qca_altair_theme():
+    return {
+        "config": {
+            "background": PRIMARY_COLOR,
+            "view": {"fill": PRIMARY_COLOR, "stroke": None},
+            "axis": {
+                "labelColor": TEXT_COLOR,
+                "titleColor": TEXT_COLOR,
+                "gridColor": "#2A2F55",
+                "domainColor": TEXT_COLOR,
+                "tickColor": TEXT_COLOR,
+            },
+            "legend": {"labelColor": TEXT_COLOR, "titleColor": TEXT_COLOR},
+            "title": {"color": TEXT_COLOR},
+        }
+    }
+
+alt.themes.register("qca", qca_altair_theme)
+alt.themes.enable("qca")
+
+# ============================
+# CSS STREAMLIT (EDGE SAFE)
+# ============================
 st.markdown(
-    f"""
-    <style>
-    :root {{
-      color-scheme: dark;
-    }}
+    rf"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0');
 
-    /* RESET seguro (NÃO coloca font-family aqui pra não quebrar ícones do Streamlit) */
-    * {{
-      box-sizing: border-box !important;
-      forced-color-adjust: none !important;
-    }}
+:root {{
+  color-scheme: dark;
+}}
 
-    /* Fonte aplicada apenas ao texto do app */
-    html, body, .stApp, [class*="st-"] {{
-      font-family: "Inter", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif !important;
-      color: {TEXT_COLOR} !important;
-    }}
+/* RESET */
+* {{
+  box-sizing: border-box !important;
+  forced-color-adjust: none !important;
+}}
 
-    /* Fundo geral */
-    .stApp {{
-      background-color: {PRIMARY_COLOR} !important;
-    }}
+html, body, .stApp {{
+  background: #1E2245 !important;
+  color: #FFFFFF !important;
+  font-family: "Inter","Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif !important;
+}}
 
-    /* Sidebar */
-    section[data-testid="stSidebar"] {{
-      background-color: {PRIMARY_COLOR} !important;
-      color: {TEXT_COLOR} !important;
-    }}
+/* REMOVE FAIXAS PRETAS */
+div[data-testid="stAppViewContainer"],
+main,
+section[data-testid="stMain"],
+header[data-testid="stHeader"],
+div[data-testid="stToolbar"],
+div[data-testid="stDecoration"],
+div[data-testid="stStatusWidget"] {{
+  background: #1E2245 !important;
+}}
 
-    /* ===== INPUTS (BaseWeb) ===== */
-    div[data-baseweb="input"] input,
-    div[data-baseweb="base-input"] input,
-    div[data-testid="stTextInput"] input,
-    div[data-testid="stDateInput"] input,
-    div[data-testid="stNumberInput"] input {{
-      background-color: #2A2F55 !important;
-      color: {TEXT_COLOR} !important;
-      border: 1px solid {SECONDARY_COLOR} !important;
-      border-radius: 6px !important;
-      -webkit-text-fill-color: {TEXT_COLOR} !important; /* Edge/Chromium */
-      caret-color: {TEXT_COLOR} !important;
-    }}
+/* SIDEBAR */
+section[data-testid="stSidebar"],
+section[data-testid="stSidebar"] > div {{
+  background: #1E2245 !important;
+  color: #FFFFFF !important;
+}}
 
-    /* Wrapper do input (Edge às vezes pinta o wrapper de branco) */
-    div[data-baseweb="base-input"],
-    div[data-baseweb="base-input"] > div,
-    div[data-testid="stDateInput"] div[data-baseweb="base-input"],
-    div[data-testid="stDateInput"] div[data-baseweb="base-input"] > div {{
-      background-color: #2A2F55 !important;
-      border-radius: 6px !important;
-      border: 1px solid {SECONDARY_COLOR} !important;
-    }}
+/* TEXTOS */
+h1,h2,h3,h4,h5,h6,p,label,small,li,span,div {{
+  color: #FFFFFF !important;
+}}
 
-    /* Placeholder */
-    div[data-baseweb="input"] input::placeholder,
-    div[data-testid="stDateInput"] input::placeholder {{
-      color: rgba(255,255,255,0.65) !important;
-      -webkit-text-fill-color: rgba(255,255,255,0.65) !important;
-    }}
+/* =========================
+   BOTÕES
+   ========================= */
+.stButton > button,
+button[kind="primary"],
+button[kind="secondary"] {{
+  background: #800E35 !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+}}
 
-    /* ===== SELECT / MULTISELECT ===== */
-    div[data-baseweb="select"] > div {{
-      background-color: #2A2F55 !important;
-      color: {TEXT_COLOR} !important;
-      border: 1px solid {SECONDARY_COLOR} !important;
-      border-radius: 6px !important;
-    }}
+.stButton > button:hover {{
+  background: #A01248 !important;
+}}
 
-    /* Dropdown de opções */
-    div[role="listbox"], ul[role="listbox"] {{
-      background-color: #11142A !important;
-      color: {TEXT_COLOR} !important;
-      border: 1px solid {SECONDARY_COLOR} !important;
-    }}
+/* =========================
+   INPUTS / DATE / NUMBER
+   ========================= */
+div[data-baseweb="input"] input,
+div[data-baseweb="base-input"] input {{
+  background: #2A2F55 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #800E35 !important;
+  border-radius: 8px !important;
+  caret-color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}}
 
-    li[role="option"] {{
-      background-color: transparent !important;
-      color: {TEXT_COLOR} !important;
-    }}
+/* =========================
+   SELECT / MULTISELECT
+   ========================= */
+div[data-baseweb="select"] > div {{
+  background: #2A2F55 !important;
+  border: 1px solid #800E35 !important;
+  border-radius: 8px !important;
+}}
 
-    li[role="option"]:hover {{
-      background-color: {SECONDARY_COLOR} !important;
-      color: white !important;
-    }}
+div[data-baseweb="select"] input,
+div[data-baseweb="select"] span {{
+  color: #FFFFFF !important;
+}}
 
-    /* ===== DATEPICKER (calendário) ===== */
-    div[data-baseweb="popover"] > div {{
-      background-color: #11142A !important;
-      color: {TEXT_COLOR} !important;
-      border: 1px solid {SECONDARY_COLOR} !important;
-      border-radius: 10px !important;
-    }}
+div[data-baseweb="select"] svg {{
+  fill: #FFFFFF !important;
+}}
 
-    /* tudo dentro do popover em tema escuro */
-    div[data-baseweb="popover"] * {{
-      color: {TEXT_COLOR} !important;
-      -webkit-text-fill-color: {TEXT_COLOR} !important;
-    }}
+/* tags multiselect */
+div[data-baseweb="tag"] {{
+  background: #1E2245 !important;
+  border: 1px solid #800E35 !important;
+  color: #FFFFFF !important;
+}}
 
-    /* ===== BOTÕES ===== */
-    .stButton>button {{
-      background-color: {SECONDARY_COLOR} !important;
-      color: white !important;
-      border: none !important;
-      border-radius: 6px !important;
-      padding: 8px 20px !important;
-      font-weight: 600 !important;
-    }}
-    .stButton>button:hover {{
-      background-color: #A01248 !important;
-    }}
+/* dropdown */
+div[role="listbox"] {{
+  background: #11142A !important;
+  border: 1px solid #800E35 !important;
+}}
 
-    /* Header */
-    header[data-testid="stHeader"] {{
-      background: none !important;
-    }}
+li[role="option"]:hover {{
+  background: #800E35 !important;
+}}
 
-    .block-container {{
-      padding-top: 1.5rem;
-    }}
+/* =========================
+   DATE PICKER
+   ========================= */
+div[data-baseweb="popover"] > div,
+div[role="dialog"] {{
+  background: #11142A !important;
+  border: 1px solid #800E35 !important;
+  border-radius: 10px !important;
+}}
 
-    /* ✅ FIX: restaura a fonte de ícones do Streamlit (seta da sidebar) */
-    header [data-testid="stSidebarCollapsedControl"] span,
-    header [data-testid="stSidebarCollapsedControl"] i,
-    header [data-testid="stSidebarCollapsedControl"] svg,
-    header span[translate="no"] {{
-      font-family: "Material Symbols Rounded","Material Symbols Outlined","Material Icons" !important;
-      -webkit-font-feature-settings: "liga" !important;
-      font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24 !important;
-    }}
+/* =========================
+   RADIO (REMOVE FAIXA)
+   ========================= */
+div[data-testid="stRadio"] * {{
+  box-shadow: none !important;
+  border: none !important;
+}}
 
-    /* ✅ FIX seta da sidebar: força Material Symbols no botão do header */
-    header button[aria-label="Open sidebar"] span,
-    header button[aria-label="Close sidebar"] span,
-    header button[title="Open sidebar"] span,
-    header button[title="Close sidebar"] span {{
-        font-family: "Material Symbols Rounded" !important;
-        font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24 !important;
-        -webkit-font-feature-settings: "liga" !important;
-        font-size: 24px !important;
-        line-height: 1 !important;
-    }}
+div[data-testid="stRadio"] label {{
+  background: transparent !important;
+}}
 
-    </style>
-    """,
+div[data-testid="stRadio"] input[type="radio"] {{
+  accent-color: #800E35 !important;
+}}
+
+/* =========================
+   SETA DA SIDEBAR (100% FIXA)
+   ========================= */
+
+/* ESCONDE TEXTO */
+span[data-testid="stIconMaterial"] {{
+  text-indent: -9999px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  width: 30px !important;
+  height: 30px !important;
+}}
+
+/* SIDEBAR ABERTA */
+div[data-testid="stSidebarCollapseButton"]
+span[data-testid="stIconMaterial"]::before {{
+  content: "keyboard_double_arrow_left";
+  font-family: "Material Symbols Rounded" !important;
+  font-variation-settings: "FILL" 1;
+  font-size: 26px;
+  color: #FFFFFF;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}}
+
+/* SIDEBAR FECHADA */
+div[data-testid="collapsedControl"]
+span[data-testid="stIconMaterial"]::before {{
+  content: "keyboard_double_arrow_right";
+  font-family: "Material Symbols Rounded" !important;
+  font-variation-settings: "FILL" 1;
+  font-size: 26px;
+  color: #FFFFFF;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}}
+
+</style>
+""",
     unsafe_allow_html=True
 )
 
@@ -201,13 +261,12 @@ EXCEL_URL = (
 # ======================================
 # Carregamento dos dados (via URL)
 # ======================================
-@st.cache_data(ttl=600)  # 10 minutos
+@st.cache_data(ttl=600)
 def load_data_from_url(url: str) -> pd.DataFrame:
     r = requests.get(url, timeout=60)
     r.raise_for_status()
     content = r.content
 
-    # XLSX é um zip; normalmente começa com "PK"
     if not content.startswith(b"PK"):
         raise ValueError(
             "O link não retornou um .xlsx válido (possível página de permissão do SharePoint). "
@@ -327,10 +386,7 @@ st.sidebar.markdown("### Usuário autenticado")
 st.sidebar.write(f"**Perfil:** {st.session_state.pin_label}")
 
 st.sidebar.markdown("### Células liberadas pelo PIN")
-if allowed_cells:
-    st.sidebar.write(", ".join(allowed_cells))
-else:
-    st.sidebar.write("Nenhuma célula liberada (verificar PIN).")
+st.sidebar.write(", ".join(allowed_cells) if allowed_cells else "Nenhuma célula liberada (verificar PIN).")
 
 if st.sidebar.button("Logout"):
     for k in ["logged_in", "pin_label", "pin_rule"]:
@@ -426,12 +482,8 @@ if modo == "Visão Geral":
             alt.Chart(encerr_por_celula)
             .mark_bar(color="#8FD0FF")
             .encode(
-                x=alt.X(
-                    f"{COL_CELULA}:N",
-                    sort="-y",
-                    axis=alt.Axis(labelAngle=-90, labelColor="white", title=None),
-                ),
-                y=alt.Y("Quantidade:Q", axis=alt.Axis(labelColor="white", title=None)),
+                x=alt.X(f"{COL_CELULA}:N", sort="-y", title=None, axis=alt.Axis(labelAngle=0, labelLimit=120, labelOverlap=False, labelPadding=10, tickSize=0)),
+                y=alt.Y("Quantidade:Q", title=None),
             )
         )
 
@@ -485,12 +537,12 @@ if modo == "Visão Geral":
                 alt.Chart(resultado_plot)
                 .mark_bar(size=60)
                 .encode(
-                    x=alt.X("Quantidade:Q", title=None, axis=alt.Axis(labelColor="white", title=None)),
-                    y=alt.Y("Classificação:N", title=None, axis=alt.Axis(labelColor="white", title=None)),
+                    x=alt.X("Quantidade:Q", title=None),
+                    y=alt.Y("Classificação:N", title=None),
                     color=alt.Color(
                         "Classificação:N",
                         scale=color_scale,
-                        legend=alt.Legend(orient="bottom", direction="horizontal", title=None, labelColor="white"),
+                        legend=alt.Legend(orient="bottom", direction="horizontal", title=None),
                     ),
                 )
                 .properties(width="container", height=300)
