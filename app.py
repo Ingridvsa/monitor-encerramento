@@ -27,18 +27,21 @@ st.markdown(
       color-scheme: dark;
     }}
 
-    /* RESET + evita Edge "forçar" branco em controles */
+    /* RESET seguro (NÃO coloca font-family aqui pra não quebrar ícones do Streamlit) */
     * {{
       box-sizing: border-box !important;
       forced-color-adjust: none !important;
-      -webkit-text-fill-color: {TEXT_COLOR} !important;
+    }}
+
+    /* Fonte aplicada apenas ao texto do app */
+    html, body, .stApp, [class*="st-"] {{
       font-family: "Inter", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif !important;
+      color: {TEXT_COLOR} !important;
     }}
 
     /* Fundo geral */
     .stApp {{
       background-color: {PRIMARY_COLOR} !important;
-      color: {TEXT_COLOR} !important;
     }}
 
     /* Sidebar */
@@ -47,12 +50,7 @@ st.markdown(
       color: {TEXT_COLOR} !important;
     }}
 
-    /* Textos */
-    html, body, [class*="st-"], .stMarkdown, label, p, span {{
-      color: {TEXT_COLOR} !important;
-    }}
-
-    /* INPUTS do Streamlit/BaseWeb (TextInput/DateInput/etc.) */
+    /* ===== INPUTS (BaseWeb) ===== */
     div[data-baseweb="input"] input,
     div[data-baseweb="base-input"] input,
     div[data-testid="stTextInput"] input,
@@ -62,11 +60,11 @@ st.markdown(
       color: {TEXT_COLOR} !important;
       border: 1px solid {SECONDARY_COLOR} !important;
       border-radius: 6px !important;
-      -webkit-text-fill-color: {TEXT_COLOR} !important;
+      -webkit-text-fill-color: {TEXT_COLOR} !important; /* Edge/Chromium */
       caret-color: {TEXT_COLOR} !important;
     }}
 
-    /* WRAPPER do input (Edge às vezes pinta o wrapper de branco) */
+    /* Wrapper do input (Edge às vezes pinta o wrapper de branco) */
     div[data-baseweb="base-input"],
     div[data-baseweb="base-input"] > div,
     div[data-testid="stDateInput"] div[data-baseweb="base-input"],
@@ -83,7 +81,7 @@ st.markdown(
       -webkit-text-fill-color: rgba(255,255,255,0.65) !important;
     }}
 
-    /* Selectbox / Multiselect (campo) */
+    /* ===== SELECT / MULTISELECT ===== */
     div[data-baseweb="select"] > div {{
       background-color: #2A2F55 !important;
       color: {TEXT_COLOR} !important;
@@ -108,7 +106,7 @@ st.markdown(
       color: white !important;
     }}
 
-    /* DatePicker: POPUP do calendário (onde no Edge fica branco) */
+    /* ===== DATEPICKER (calendário) ===== */
     div[data-baseweb="popover"] > div {{
       background-color: #11142A !important;
       color: {TEXT_COLOR} !important;
@@ -116,14 +114,13 @@ st.markdown(
       border-radius: 10px !important;
     }}
 
-    /* garante que tudo dentro do popover herde escuro */
+    /* tudo dentro do popover em tema escuro */
     div[data-baseweb="popover"] * {{
-      background-color: transparent !important;
       color: {TEXT_COLOR} !important;
       -webkit-text-fill-color: {TEXT_COLOR} !important;
     }}
 
-    /* Botões */
+    /* ===== BOTÕES ===== */
     .stButton>button {{
       background-color: {SECONDARY_COLOR} !important;
       color: white !important;
@@ -132,15 +129,8 @@ st.markdown(
       padding: 8px 20px !important;
       font-weight: 600 !important;
     }}
-
     .stButton>button:hover {{
       background-color: #A01248 !important;
-    }}
-
-    /* Métricas */
-    div[data-testid="stMetricValue"],
-    div[data-testid="stMetricLabel"] {{
-      color: {TEXT_COLOR} !important;
     }}
 
     /* Header */
@@ -151,11 +141,33 @@ st.markdown(
     .block-container {{
       padding-top: 1.5rem;
     }}
+
+    /* ✅ FIX: restaura a fonte de ícones do Streamlit (seta da sidebar) */
+    header [data-testid="stSidebarCollapsedControl"] span,
+    header [data-testid="stSidebarCollapsedControl"] i,
+    header [data-testid="stSidebarCollapsedControl"] svg,
+    header span[translate="no"] {{
+      font-family: "Material Symbols Rounded","Material Symbols Outlined","Material Icons" !important;
+      -webkit-font-feature-settings: "liga" !important;
+      font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24 !important;
+    }}
+
+    /* ✅ FIX seta da sidebar: força Material Symbols no botão do header */
+    header button[aria-label="Open sidebar"] span,
+    header button[aria-label="Close sidebar"] span,
+    header button[title="Open sidebar"] span,
+    header button[title="Close sidebar"] span {{
+        font-family: "Material Symbols Rounded" !important;
+        font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24 !important;
+        -webkit-font-feature-settings: "liga" !important;
+        font-size: 24px !important;
+        line-height: 1 !important;
+    }}
+
     </style>
     """,
     unsafe_allow_html=True
 )
-
 
 # ======================================
 # PINs e regras de acesso
@@ -193,7 +205,6 @@ EXCEL_URL = (
 def load_data_from_url(url: str) -> pd.DataFrame:
     r = requests.get(url, timeout=60)
     r.raise_for_status()
-
     content = r.content
 
     # XLSX é um zip; normalmente começa com "PK"
@@ -219,11 +230,9 @@ def load_data_from_url(url: str) -> pd.DataFrame:
             f"Colunas detectadas (até 30): {list(df.columns)[:30]}"
         )
 
-    # Coluna de data
     df["Data Encerramento"] = pd.to_datetime(df["Data Encerramento"], dayfirst=True, errors="coerce")
     df["Ano Encerramento"] = df["Data Encerramento"].dt.year
     df["Mes Encerramento"] = df["Data Encerramento"].dt.month
-
     return df
 
 # Sidebar: botão para atualização
@@ -240,7 +249,7 @@ except Exception as e:
     st.exception(e)
     st.stop()
 
-# Nomes das colunas utilizadas no código
+# Colunas
 COL_DATA = "Data Encerramento"
 COL_CELULA = "Célula"
 COL_RESP = "Responsável Encerramento"
@@ -250,32 +259,14 @@ COL_TIPO = "Tipo Encerramento"
 # Regras de classificação FAVO / DESF
 # ======================================
 FAVO_TYPES = {
-    "ACORDO",
-    "ACORDO PRÉVIO",
-    "ACORDO PREVIO",
-    "DESISTÊNCIA",
-    "DESISTENCIA",
-    "DESISTÊNCIA DA RECLAMAÇÃO",
-    "EXTINTO SEM JULGAMENTO DO MÉRITO",
-    "EXTINTO SEM JULGAMENTO",
-    "IMPROCEDENTE",
-    "NÃO FUNDAMENTADA",
-    "NAO FUNDAMENTADA SEM PECÚNIA",
-    "COM MULTA",
+    "ACORDO", "ACORDO PRÉVIO", "ACORDO PREVIO", "DESISTÊNCIA", "DESISTENCIA",
+    "DESISTÊNCIA DA RECLAMAÇÃO", "EXTINTO SEM JULGAMENTO DO MÉRITO",
+    "EXTINTO SEM JULGAMENTO", "IMPROCEDENTE", "NÃO FUNDAMENTADA",
+    "NAO FUNDAMENTADA SEM PECÚNIA", "COM MULTA",
 }
+DESF_TYPES = {"PROCEDENTE", "PROCEDENTE EM PARTE"}
+IGNORE_TYPES = {"DESCONSIDERAÇÃO DE PATROCÍNIO", "DESCONTRATAÇÃO", "CADASTRO DUPLICADO OU EQUIVOCADO"}
 
-DESF_TYPES = {
-    "PROCEDENTE",
-    "PROCEDENTE EM PARTE",
-}
-
-IGNORE_TYPES = {
-    "DESCONSIDERAÇÃO DE PATROCÍNIO",
-    "DESCONTRATAÇÃO",
-    "CADASTRO DUPLICADO OU EQUIVOCADO",
-}
-
-# Normaliza tipo de encerramento e célula
 df_raw[COL_TIPO] = df_raw[COL_TIPO].astype(str).str.upper().str.strip()
 df_raw[COL_CELULA] = df_raw[COL_CELULA].astype(str).str.replace("\xa0", " ", regex=False).str.strip()
 
@@ -289,13 +280,11 @@ def classificar_tipo(tipo: str) -> str:
     return None
 
 df_raw["Classificação"] = df_raw[COL_TIPO].apply(classificar_tipo)
-
-# Remove tipos ignorados e nulos
 df_raw = df_raw[df_raw["Classificação"] != "IGNORAR"]
 df_raw = df_raw[df_raw["Classificação"].notna()]
 
 # ======================================
-# CONTROLE DE SESSÃO (LOGIN POR PIN)
+# LOGIN POR PIN
 # ======================================
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -317,7 +306,6 @@ if not st.session_state.logged_in:
             st.session_state.pin_rule = rule
             st.success("PIN aceito! Carregando dashboard...")
             st.rerun()
-
     st.stop()
 
 # ======================================
@@ -334,9 +322,7 @@ if rule is not None:
         allowed_cells = [c.strip() for c in rule["cells"]]
         df = df[df[COL_CELULA].isin(allowed_cells)]
 
-# ======================================
-# BARRA LATERAL – INFO DO PIN E LOGOUT
-# ======================================
+# Sidebar info
 st.sidebar.markdown("### Usuário autenticado")
 st.sidebar.write(f"**Perfil:** {st.session_state.pin_label}")
 
@@ -356,18 +342,10 @@ if st.sidebar.button("Logout"):
 # DASHBOARD
 # ======================================
 st.title("📊 Dashboard de Encerramentos")
+st.markdown("Este painel mostra a **quantidade de encerramentos** com base na planilha de encerramentos.")
 
-st.markdown(
-    """
-    Este painel mostra a **quantidade de encerramentos** com base na planilha de encerramentos.
-    """
-)
-
-# =========================
-# Barra lateral – Filtros
-# =========================
+# Filtros
 st.sidebar.header("Filtros")
-
 min_date = df[COL_DATA].min()
 max_date = df[COL_DATA].max()
 
@@ -391,17 +369,12 @@ celulas_disponiveis = sorted(df[COL_CELULA].dropna().unique())
 celulas_sel = st.sidebar.multiselect("Célula", celulas_disponiveis)
 
 responsaveis_disponiveis = sorted(df[COL_RESP].dropna().unique())
-responsaveis_sel = st.sidebar.multiselect(
-    "Responsável pelo Encerramento",
-    responsaveis_disponiveis
-)
+responsaveis_sel = st.sidebar.multiselect("Responsável pelo Encerramento", responsaveis_disponiveis)
 
 tipos_disponiveis = sorted(df[COL_TIPO].dropna().unique())
 tipos_sel = st.sidebar.multiselect("Tipo de Encerramento", tipos_disponiveis)
 
-# =========================
-# Aplicação dos filtros
-# =========================
+# Aplica filtros
 df_filtrado = df.copy()
 
 if isinstance(periodo, list) and len(periodo) == 2:
@@ -414,31 +387,17 @@ if isinstance(periodo, list) and len(periodo) == 2:
 
 if anos_sel:
     df_filtrado = df_filtrado[df_filtrado["Ano Encerramento"].isin(anos_sel)]
-
 if meses_sel:
     df_filtrado = df_filtrado[df_filtrado["Mes Encerramento"].isin(meses_sel)]
-
 if celulas_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_CELULA].isin(celulas_sel)]
-
 if responsaveis_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_RESP].isin(responsaveis_sel)]
-
 if tipos_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_TIPO].isin(tipos_sel)]
 
-# =========================
-# Modo de visualização
-# =========================
-modo = st.radio(
-    "Modo de visualização",
-    ["Visão Geral", "Comparar Células"],
-    horizontal=True,
-)
+modo = st.radio("Modo de visualização", ["Visão Geral", "Comparar Células"], horizontal=True)
 
-# =========================
-# VISÃO GERAL
-# =========================
 if modo == "Visão Geral":
     st.subheader("Visão Geral dos Encerramentos")
 
@@ -446,10 +405,10 @@ if modo == "Visão Geral":
     total_celulas = df_filtrado[COL_CELULA].nunique()
     total_responsaveis = df_filtrado[COL_RESP].nunique()
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total de Encerramentos", total_encerramentos)
-    col2.metric("Quantidade de Células", total_celulas)
-    col3.metric("Responsáveis Diferentes", total_responsaveis)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Total de Encerramentos", total_encerramentos)
+    c2.metric("Quantidade de Células", total_celulas)
+    c3.metric("Responsáveis Diferentes", total_responsaveis)
 
     st.markdown("### Quantidade de Encerramentos por Célula")
     if total_encerramentos > 0:
@@ -460,7 +419,9 @@ if modo == "Visão Geral":
             .rename("Quantidade")
             .reset_index()
         )
+
         st.dataframe(encerr_por_celula, use_container_width=True, hide_index=True)
+
         chart_bar = (
             alt.Chart(encerr_por_celula)
             .mark_bar(color="#8FD0FF")
@@ -468,31 +429,15 @@ if modo == "Visão Geral":
                 x=alt.X(
                     f"{COL_CELULA}:N",
                     sort="-y",
-                    axis=alt.Axis(
-                        labelAngle=-90,
-                        labelColor="white",
-                        title=None,
-                    ),
+                    axis=alt.Axis(labelAngle=-90, labelColor="white", title=None),
                 ),
-                y=alt.Y(
-                    "Quantidade:Q",
-                    axis=alt.Axis(
-                        labelColor="white",
-                        title=None,
-                    ),
-                ),
+                y=alt.Y("Quantidade:Q", axis=alt.Axis(labelColor="white", title=None)),
             )
         )
 
-        # 🔢 Rótulos em cima das barras
         labels = (
             alt.Chart(encerr_por_celula)
-            .mark_text(
-                dy=-8,               # sobe o texto
-                color="white",
-                fontSize=12,
-                fontWeight="bold",
-            )
+            .mark_text(dy=-8, color="white", fontSize=12, fontWeight="bold")
             .encode(
                 x=alt.X(f"{COL_CELULA}:N", sort="-y"),
                 y=alt.Y("Quantidade:Q"),
@@ -500,10 +445,7 @@ if modo == "Visão Geral":
             )
         )
 
-        st.altair_chart(
-            (chart_bar + labels).properties(height=420),
-            use_container_width=True,
-        )
+        st.altair_chart((chart_bar + labels).properties(height=420), use_container_width=True)
     else:
         st.info("Nenhum encerramento encontrado com os filtros atuais.")
 
@@ -548,12 +490,7 @@ if modo == "Visão Geral":
                     color=alt.Color(
                         "Classificação:N",
                         scale=color_scale,
-                        legend=alt.Legend(
-                            orient="bottom",
-                            direction="horizontal",
-                            title=None,
-                            labelColor="white",
-                        ),
+                        legend=alt.Legend(orient="bottom", direction="horizontal", title=None, labelColor="white"),
                     ),
                 )
                 .properties(width="container", height=300)
@@ -565,9 +502,6 @@ if modo == "Visão Geral":
     else:
         st.info("Nenhum encerramento para classificar com os filtros atuais.")
 
-# =========================
-# MODO COMPARAR CÉLULAS
-# =========================
 else:
     st.subheader("Comparação entre Células")
 
@@ -587,7 +521,6 @@ else:
                 st.markdown(f"#### Célula: {cel}")
 
                 df_cel = df_filtrado[df_filtrado[COL_CELULA] == cel]
-
                 total_cel = len(df_cel)
                 tipos_unicos = df_cel[COL_TIPO].nunique()
 
