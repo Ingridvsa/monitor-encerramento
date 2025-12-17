@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import calendar
 import altair as alt
+import requests
+from io import BytesIO
 
 # ======================================
 # CONFIGURAÇÃO INICIAL
@@ -111,93 +113,86 @@ st.markdown(
 # PINs e regras de acesso
 # ======================================
 PIN_RULES = {
-    # 9999 -> vê todas as células
-    "9999": {
-        "all": True,
-        "cells": None,
-        "label": "Controller",
-    },
-
-    # 1375 -> CredSystem, Credsystem - Administrativo
-    "1375": {
-        "all": False,
-        "cells": ["CredSystem", "Credsystem - Administrativo"],
-        "label": "CredSystem",
-    },
-
-    # 4820 -> Samsung
-    "4820": {
-        "all": False,
-        "cells": ["Samsung"],
-        "label": "Samsung",
-    },
-
-    # 7312 -> Asus, Lenovo - Service, Lenovo - Web
-    "7312": {
-        "all": False,
-        "cells": ["Asus", "Lenovo - Service", "Lenovo - Web"],
-        "label": "Lenovo",
-    },
-
-    # 2648 -> Cardif, Generali Brasil Seguros S.A., Ressarci - Movida
-    "2648": {
-        "all": False,
-        "cells": ["Cardif", "Generali Brasil Seguros S.A.", "Ressarci - Movida"],
-        "label": "Cardif / Generali / Movida",
-    },
-
-    # 5903 -> GOL, Smiles
-    "5903": {
-        "all": False,
-        "cells": ["GOL", "Smiles"],
-        "label": "GOL / Smiles",
-    },
-
-    # 8241 -> Whirlpool
-    "8241": {
-        "all": False,
-        "cells": ["Whirlpool"],
-        "label": "Whirlpool",
-    },
-
-    # 4167 -> Extrafarma, ALE
-    "4167": {
-        "all": False,
-        "cells": ["Extrafarma", "ALE"],
-        "label": "ALE / Extrafarma",
-    },
+    "9999": {"all": True, "cells": None, "label": "Controller"},
+    "1375": {"all": False, "cells": ["CredSystem", "Credsystem - Administrativo"], "label": "CredSystem"},
+    "4820": {"all": False, "cells": ["Samsung"], "label": "Samsung"},
+    "7312": {"all": False, "cells": ["Asus", "Lenovo - Service", "Lenovo - Web"], "label": "Lenovo"},
+    "2648": {"all": False, "cells": ["Cardif", "Generali Brasil Seguros S.A.", "Ressarci - Movida"], "label": "Cardif / Generali / Movida"},
+    "5903": {"all": False, "cells": ["GOL", "Smiles"], "label": "GOL / Smiles"},
+    "8241": {"all": False, "cells": ["Whirlpool"], "label": "Whirlpool"},
+    "4167": {"all": False, "cells": ["Extrafarma", "ALE"], "label": "ALE / Extrafarma"},
 }
 
-
 def get_pin_rule(pin_input: str):
-    """Retorna a regra de acesso para o PIN informado."""
     if not pin_input:
         return None
-    pin_clean = pin_input.strip()  # agora não precisa mais de lower()
-    return PIN_RULES.get(pin_clean)
-
+    return PIN_RULES.get(pin_input.strip())
 
 # ======================================
-# Carregamento dos dados
+# LINK DO SHAREPOINT (DOWNLOAD DIRETO)
 # ======================================
-@st.cache_data
-def load_data(path: str):
-    df = pd.read_excel(path)
+EXCEL_URL = (
+    "https://queirozcavalcanti-my.sharepoint.com/:x:/g/personal/"
+    "gabrielpontual_queirozcavalcanti_adv_br/"
+    "IQD_stp8RpavSacdSbEwVs_qASnwn5uLtsyuQ3srFOgRb9s"
+    "?download=1"
+)
 
-    # Coluna de data
-    df["Data Encerramento"] = pd.to_datetime(
-        df["Data Encerramento"], dayfirst=True, errors="coerce"
+# ======================================
+# Carregamento dos dados (via URL)
+# ======================================
+@st.cache_data(ttl=600)  # 10 minutos
+def load_data_from_url(url: str) -> pd.DataFrame:
+    r = requests.get(url, timeout=60)
+    r.raise_for_status()
+
+    content = r.content
+
+    # XLSX é um zip; normalmente começa com "PK"
+    if not content.startswith(b"PK"):
+        raise ValueError(
+            "O link não retornou um .xlsx válido (possível página de permissão do SharePoint). "
+            "Verifique se o compartilhamento permite acesso por link e download."
+        )
+
+    df = pd.read_excel(BytesIO(content), sheet_name=0, header=0, engine="openpyxl")
+
+    # 🔥 LIMPEZA CRÍTICA: remove NBSP e espaços extras nos nomes das colunas
+    df.columns = (
+        df.columns.astype(str)
+        .str.replace("\xa0", " ", regex=False)
+        .str.strip()
     )
 
+    # Confere se as colunas essenciais existem
+    required_cols = ["Data Encerramento", "Tipo Encerramento", "Responsável Encerramento", "Célula"]
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        raise KeyError(
+            f"Colunas não encontradas: {missing}. "
+            f"Colunas detectadas (até 30): {list(df.columns)[:30]}"
+        )
+
+    # Coluna de data
+    df["Data Encerramento"] = pd.to_datetime(df["Data Encerramento"], dayfirst=True, errors="coerce")
     df["Ano Encerramento"] = df["Data Encerramento"].dt.year
     df["Mes Encerramento"] = df["Data Encerramento"].dt.month
 
     return df
 
+# Sidebar: botão para forçar atualização imediata
+st.sidebar.markdown("### Atualização da Base")
+if st.sidebar.button("Atualizar dados agora"):
+    st.cache_data.clear()
+    st.rerun()
 
-# Caminho da planilha no OneDrive
-EXCEL_PATH = r"C:\Users\ingridaleixo\OneDrive - Queiroz Cavalcanti Advocacia\NÚCLEO CONTROLLER\Planilhas - Auditorias\ENCERRAMENTOS.xlsx"
-df_raw = load_data(EXCEL_PATH)
+# Carrega base
+try:
+    df_raw = load_data_from_url(EXCEL_URL)
+except Exception as e:
+    st.error("Não foi possível carregar a planilha do SharePoint.")
+    st.exception(e)
+    st.stop()
 
 # Nomes das colunas utilizadas no código
 COL_DATA = "Data Encerramento"
@@ -234,10 +229,9 @@ IGNORE_TYPES = {
     "CADASTRO DUPLICADO OU EQUIVOCADO",
 }
 
-# Normaliza tipo de encerramento e aplica classificação na base bruta
+# Normaliza tipo de encerramento e célula
 df_raw[COL_TIPO] = df_raw[COL_TIPO].astype(str).str.upper().str.strip()
-df_raw[COL_CELULA] = df_raw[COL_CELULA].astype(str).str.strip()
-
+df_raw[COL_CELULA] = df_raw[COL_CELULA].astype(str).str.replace("\xa0", " ", regex=False).str.strip()
 
 def classificar_tipo(tipo: str) -> str:
     if tipo in IGNORE_TYPES:
@@ -248,13 +242,11 @@ def classificar_tipo(tipo: str) -> str:
         return "DESFAVORÁVEL"
     return None
 
-
 df_raw["Classificação"] = df_raw[COL_TIPO].apply(classificar_tipo)
 
-# Remove totalmente os tipos a serem ignorados
+# Remove tipos ignorados e nulos
 df_raw = df_raw[df_raw["Classificação"] != "IGNORAR"]
 df_raw = df_raw[df_raw["Classificação"].notna()]
-
 
 # ======================================
 # CONTROLE DE SESSÃO (LOGIN POR PIN)
@@ -265,15 +257,8 @@ if "logged_in" not in st.session_state:
     st.session_state.pin_rule = None
 
 if not st.session_state.logged_in:
-    # Tela de login
     st.title("🔐 Dashboard de Encerramentos – Login")
-
-    st.markdown(
-        """
-        Para acessar o painel, informe o **PIN** da sua coordenação.
-        """
-    )
-
+    st.markdown("Para acessar o painel, informe o **PIN** da sua coordenação.")
     pin_input = st.text_input("Digite seu PIN:", type="password")
 
     if st.button("Entrar"):
@@ -287,7 +272,6 @@ if not st.session_state.logged_in:
             st.success("PIN aceito! Carregando dashboard...")
             st.rerun()
 
-    # Não deixa seguir adiante sem login
     st.stop()
 
 # ======================================
@@ -297,10 +281,9 @@ rule = st.session_state.pin_rule
 df = df_raw.copy()
 
 allowed_cells = None
-
 if rule is not None:
     if rule.get("all", False):
-        allowed_cells = sorted(df[COL_CELULA].unique())
+        allowed_cells = sorted(df[COL_CELULA].dropna().unique())
     else:
         allowed_cells = [c.strip() for c in rule["cells"]]
         df = df[df[COL_CELULA].isin(allowed_cells)]
@@ -317,7 +300,7 @@ if allowed_cells:
 else:
     st.sidebar.write("Nenhuma célula liberada (verificar PIN).")
 
-if st.sidebar.button("Trocar PIN / Logout"):
+if st.sidebar.button("Logout"):
     for k in ["logged_in", "pin_label", "pin_rule"]:
         if k in st.session_state:
             del st.session_state[k]
@@ -326,7 +309,6 @@ if st.sidebar.button("Trocar PIN / Logout"):
 # ======================================
 # DASHBOARD
 # ======================================
-
 st.title("📊 Dashboard de Encerramentos")
 
 st.markdown(
@@ -369,9 +351,11 @@ celulas_disponiveis = sorted(df[COL_CELULA].dropna().unique())
 celulas_sel = st.sidebar.multiselect("Célula", celulas_disponiveis)
 
 responsaveis_disponiveis = sorted(df[COL_RESP].dropna().unique())
-responsaveis_sel = st.sidebar.multiselect("Responsável pelo Encerramento", responsaveis_disponiveis)
+responsaveis_sel = st.sidebar.multiselect(
+    "Responsável pelo Encerramento",
+    responsaveis_disponiveis
+)
 
-# Tipos de encerramento
 tipos_disponiveis = sorted(df[COL_TIPO].dropna().unique())
 tipos_sel = st.sidebar.multiselect("Tipo de Encerramento", tipos_disponiveis)
 
@@ -380,7 +364,6 @@ tipos_sel = st.sidebar.multiselect("Tipo de Encerramento", tipos_disponiveis)
 # =========================
 df_filtrado = df.copy()
 
-# Período
 if isinstance(periodo, list) and len(periodo) == 2:
     data_inicio, data_fim = periodo
     if data_inicio and data_fim:
@@ -389,23 +372,18 @@ if isinstance(periodo, list) and len(periodo) == 2:
             & (df_filtrado[COL_DATA] <= pd.to_datetime(data_fim))
         ]
 
-# Ano
 if anos_sel:
     df_filtrado = df_filtrado[df_filtrado["Ano Encerramento"].isin(anos_sel)]
 
-# Mês
 if meses_sel:
     df_filtrado = df_filtrado[df_filtrado["Mes Encerramento"].isin(meses_sel)]
 
-# Célula
 if celulas_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_CELULA].isin(celulas_sel)]
 
-# Responsável
 if responsaveis_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_RESP].isin(responsaveis_sel)]
 
-# Tipo de Encerramento
 if tipos_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_TIPO].isin(tipos_sel)]
 
@@ -460,11 +438,7 @@ if modo == "Visão Geral":
     else:
         st.info("Nenhum tipo de encerramento encontrado com os filtros atuais.")
 
-        # =========================
-    # Gráfico FAVO x DESF (barras horizontais)
-    # =========================
     st.markdown("### Encerramentos Favoráveis x Desfavoráveis")
-
     if total_encerramentos > 0:
         resultado_classificacao = (
             df_filtrado["Classificação"]
@@ -473,7 +447,6 @@ if modo == "Visão Geral":
             .reset_index(name="Quantidade")
         )
 
-        # Mantém apenas FAVORÁVEL e DESFAVORÁVEL
         resultado_plot = resultado_classificacao[
             resultado_classificacao["Classificação"].isin(["FAVORÁVEL", "DESFAVORÁVEL"])
         ]
@@ -481,40 +454,27 @@ if modo == "Visão Geral":
         if not resultado_plot.empty:
             color_scale = alt.Scale(
                 domain=["FAVORÁVEL", "DESFAVORÁVEL"],
-                range=["#1CB66F", "#C7373A"],  # verde e vermelho
+                range=["#1CB66F", "#C7373A"],
             )
 
             chart = (
                 alt.Chart(resultado_plot)
                 .mark_bar(size=60)
                 .encode(
-                    # Barras na horizontal: Quantidade no eixo X
-                    x=alt.X(
-                        "Quantidade:Q",
-                        title=None,
-                        axis=alt.Axis(labelColor="white", title=None),
-                    ),
-                    # Classificação no eixo Y
-                    y=alt.Y(
-                        "Classificação:N",
-                        title=None,
-                        axis=alt.Axis(labelColor="white", title=None),
-                    ),
+                    x=alt.X("Quantidade:Q", title=None, axis=alt.Axis(labelColor="white", title=None)),
+                    y=alt.Y("Classificação:N", title=None, axis=alt.Axis(labelColor="white", title=None)),
                     color=alt.Color(
                         "Classificação:N",
                         scale=color_scale,
                         legend=alt.Legend(
-                            orient="bottom",          # embaixo
-                            direction="horizontal",   # legenda na horizontal
+                            orient="bottom",
+                            direction="horizontal",
                             title=None,
                             labelColor="white",
                         ),
                     ),
                 )
-                .properties(
-                    width="container",
-                    height=300,
-                )
+                .properties(width="container", height=300)
             )
 
             st.altair_chart(chart, use_container_width=True)
