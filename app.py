@@ -23,91 +23,139 @@ TEXT_COLOR = "#FFFFFF"
 st.markdown(
     f"""
     <style>
+    :root {{
+      color-scheme: dark;
+    }}
+
+    /* RESET + evita Edge "forçar" branco em controles */
+    * {{
+      box-sizing: border-box !important;
+      forced-color-adjust: none !important;
+      -webkit-text-fill-color: {TEXT_COLOR} !important;
+      font-family: "Inter", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif !important;
+    }}
 
     /* Fundo geral */
     .stApp {{
-        background-color: {PRIMARY_COLOR} !important;
-        color: {TEXT_COLOR} !important;
+      background-color: {PRIMARY_COLOR} !important;
+      color: {TEXT_COLOR} !important;
     }}
 
     /* Sidebar */
     section[data-testid="stSidebar"] {{
-        background-color: {PRIMARY_COLOR} !important;
-        color: {TEXT_COLOR} !important;
+      background-color: {PRIMARY_COLOR} !important;
+      color: {TEXT_COLOR} !important;
     }}
 
-    /* Títulos, textos e labels */
-    html, body, [class*="st-"], .stMarkdown, .stTextInput, label, p, span {{
-        color: {TEXT_COLOR} !important;
+    /* Textos */
+    html, body, [class*="st-"], .stMarkdown, label, p, span {{
+      color: {TEXT_COLOR} !important;
     }}
 
-    /* Inputs (caixa de texto, select, multiselect...) */
-    input, textarea, select, .stTextInput > div > div > input {{
-        background-color: #2A2F55 !important;
-        color: {TEXT_COLOR} !important;
-        border: 1px solid {SECONDARY_COLOR} !important;
-        border-radius: 6px;
+    /* INPUTS do Streamlit/BaseWeb (TextInput/DateInput/etc.) */
+    div[data-baseweb="input"] input,
+    div[data-baseweb="base-input"] input,
+    div[data-testid="stTextInput"] input,
+    div[data-testid="stDateInput"] input,
+    div[data-testid="stNumberInput"] input {{
+      background-color: #2A2F55 !important;
+      color: {TEXT_COLOR} !important;
+      border: 1px solid {SECONDARY_COLOR} !important;
+      border-radius: 6px !important;
+      -webkit-text-fill-color: {TEXT_COLOR} !important;
+      caret-color: {TEXT_COLOR} !important;
+    }}
+
+    /* WRAPPER do input (Edge às vezes pinta o wrapper de branco) */
+    div[data-baseweb="base-input"],
+    div[data-baseweb="base-input"] > div,
+    div[data-testid="stDateInput"] div[data-baseweb="base-input"],
+    div[data-testid="stDateInput"] div[data-baseweb="base-input"] > div {{
+      background-color: #2A2F55 !important;
+      border-radius: 6px !important;
+      border: 1px solid {SECONDARY_COLOR} !important;
+    }}
+
+    /* Placeholder */
+    div[data-baseweb="input"] input::placeholder,
+    div[data-testid="stDateInput"] input::placeholder {{
+      color: rgba(255,255,255,0.65) !important;
+      -webkit-text-fill-color: rgba(255,255,255,0.65) !important;
+    }}
+
+    /* Selectbox / Multiselect (campo) */
+    div[data-baseweb="select"] > div {{
+      background-color: #2A2F55 !important;
+      color: {TEXT_COLOR} !important;
+      border: 1px solid {SECONDARY_COLOR} !important;
+      border-radius: 6px !important;
+    }}
+
+    /* Dropdown de opções */
+    div[role="listbox"], ul[role="listbox"] {{
+      background-color: #11142A !important;
+      color: {TEXT_COLOR} !important;
+      border: 1px solid {SECONDARY_COLOR} !important;
+    }}
+
+    li[role="option"] {{
+      background-color: transparent !important;
+      color: {TEXT_COLOR} !important;
+    }}
+
+    li[role="option"]:hover {{
+      background-color: {SECONDARY_COLOR} !important;
+      color: white !important;
+    }}
+
+    /* DatePicker: POPUP do calendário (onde no Edge fica branco) */
+    div[data-baseweb="popover"] > div {{
+      background-color: #11142A !important;
+      color: {TEXT_COLOR} !important;
+      border: 1px solid {SECONDARY_COLOR} !important;
+      border-radius: 10px !important;
+    }}
+
+    /* garante que tudo dentro do popover herde escuro */
+    div[data-baseweb="popover"] * {{
+      background-color: transparent !important;
+      color: {TEXT_COLOR} !important;
+      -webkit-text-fill-color: {TEXT_COLOR} !important;
     }}
 
     /* Botões */
     .stButton>button {{
-        background-color: {SECONDARY_COLOR} !important;
-        color: white !important;
-        border: none;
-        border-radius: 6px;
-        padding: 8px 20px;
-        font-weight: 600;
+      background-color: {SECONDARY_COLOR} !important;
+      color: white !important;
+      border: none !important;
+      border-radius: 6px !important;
+      padding: 8px 20px !important;
+      font-weight: 600 !important;
     }}
+
     .stButton>button:hover {{
-        background-color: #A01248 !important;
-        color: white !important;
-        border: none;
+      background-color: #A01248 !important;
     }}
 
     /* Métricas */
-    div[data-testid="stMetricValue"], 
+    div[data-testid="stMetricValue"],
     div[data-testid="stMetricLabel"] {{
-        color: {TEXT_COLOR} !important;
+      color: {TEXT_COLOR} !important;
     }}
 
-    /* DataFrames e tabelas */
-    .stDataFrame, .stTable {{
-        background-color: transparent !important;
-        color: {TEXT_COLOR} !important;
-    }}
-
-    /* Containers (cards, caixas, markdown blocks) */
-    .stContainer, .stMarkdown {{
-        background-color: transparent !important;
-    }}
-
-    /* Selectbox e multiselect fundo */
-    div[data-baseweb="select"] > div {{
-        background-color: #2A2F55 !important;
-        color: {TEXT_COLOR} !important;
-        border-color: {SECONDARY_COLOR} !important;
-    }}
-
-    /* Hover do dropdown */
-    li[role="option"]:hover {{
-        background-color: {SECONDARY_COLOR} !important;
-        color: white !important;
-    }}
-
-    /* Barra superior (deploy, logotipo do streamlit) */
+    /* Header */
     header[data-testid="stHeader"] {{
-        background: none !important;
+      background: none !important;
     }}
 
-    /* Remover bordas claras padrão */
     .block-container {{
-        padding-top: 1.5rem;
+      padding-top: 1.5rem;
     }}
-
     </style>
     """,
     unsafe_allow_html=True
 )
+
 
 # ======================================
 # PINs e regras de acesso
@@ -157,14 +205,12 @@ def load_data_from_url(url: str) -> pd.DataFrame:
 
     df = pd.read_excel(BytesIO(content), sheet_name=0, header=0, engine="openpyxl")
 
-    # 🔥 LIMPEZA CRÍTICA: remove NBSP e espaços extras nos nomes das colunas
     df.columns = (
         df.columns.astype(str)
         .str.replace("\xa0", " ", regex=False)
         .str.strip()
     )
 
-    # Confere se as colunas essenciais existem
     required_cols = ["Data Encerramento", "Tipo Encerramento", "Responsável Encerramento", "Célula"]
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
@@ -180,7 +226,7 @@ def load_data_from_url(url: str) -> pd.DataFrame:
 
     return df
 
-# Sidebar: botão para forçar atualização imediata
+# Sidebar: botão para atualização
 st.sidebar.markdown("### Atualização da Base")
 if st.sidebar.button("Atualizar dados agora"):
     st.cache_data.clear()
@@ -313,14 +359,8 @@ st.title("📊 Dashboard de Encerramentos")
 
 st.markdown(
     """
-Este painel mostra a **quantidade de encerramentos** com base na planilha de encerramentos.
-
-- A coluna **Célula** é usada para agrupar os dados;
-- A coluna **Responsável Encerramento** identifica quem encerrou;
-- A coluna **Data Encerramento** permite filtrar por período, mês e ano;
-- A coluna **Tipo Encerramento** mostra o tipo de encerramento;
-- A coluna **Classificação** indica se o encerramento foi **FAVORÁVEL** ou **DESFAVORÁVEL**.
-"""
+    Este painel mostra a **quantidade de encerramentos** com base na planilha de encerramentos.
+    """
 )
 
 # =========================
@@ -421,7 +461,49 @@ if modo == "Visão Geral":
             .reset_index()
         )
         st.dataframe(encerr_por_celula, use_container_width=True, hide_index=True)
-        st.bar_chart(encerr_por_celula.set_index(COL_CELULA)["Quantidade"])
+        chart_bar = (
+            alt.Chart(encerr_por_celula)
+            .mark_bar(color="#8FD0FF")
+            .encode(
+                x=alt.X(
+                    f"{COL_CELULA}:N",
+                    sort="-y",
+                    axis=alt.Axis(
+                        labelAngle=-90,
+                        labelColor="white",
+                        title=None,
+                    ),
+                ),
+                y=alt.Y(
+                    "Quantidade:Q",
+                    axis=alt.Axis(
+                        labelColor="white",
+                        title=None,
+                    ),
+                ),
+            )
+        )
+
+        # 🔢 Rótulos em cima das barras
+        labels = (
+            alt.Chart(encerr_por_celula)
+            .mark_text(
+                dy=-8,               # sobe o texto
+                color="white",
+                fontSize=12,
+                fontWeight="bold",
+            )
+            .encode(
+                x=alt.X(f"{COL_CELULA}:N", sort="-y"),
+                y=alt.Y("Quantidade:Q"),
+                text=alt.Text("Quantidade:Q"),
+            )
+        )
+
+        st.altair_chart(
+            (chart_bar + labels).properties(height=420),
+            use_container_width=True,
+        )
     else:
         st.info("Nenhum encerramento encontrado com os filtros atuais.")
 
