@@ -254,7 +254,7 @@ def get_pin_rule(pin_input: str):
 EXCEL_URL = (
     "https://queirozcavalcanti-my.sharepoint.com/:x:/g/personal/"
     "gabrielpontual_queirozcavalcanti_adv_br/"
-    "IQD_stp8RpavSacdSbEwVs_qASnwn5uLtsyuQ3srFOgRb9s"
+    "IQBwSLv4Qc25R4Su8vLNO1NyAcqCm92mng41_dPxJd-Jm6c"
     "?download=1"
 )
 
